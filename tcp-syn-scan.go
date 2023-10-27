@@ -1,53 +1,74 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-	"github.com/google/gopacket/routing"
 	"log"
 	"net"
+	"strconv"
 )
 
-type scanner struct {
-	iface        *net.Interface
-	dst, gw, src net.IP
-	handle       *pcap.Handle
-	opts         gopacket.SerializeOptions
-	buf          gopacket.SerializeBuffer
-}
-
-func newScanner(ip net.IP, router routing.Router) (*scanner, error) {
-	s := &scanner{
-		dst: ip,
-		opts: gopacket.SerializeOptions{
-			FixLengths:       true,
-			ComputeChecksums: true,
-		},
-		buf: gopacket.NewSerializeBuffer(),
-	}
-	iface, gw, src, err := router.Route(ip)
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("scanning ip %v with interface %v, gateway %v, src %v", ip, iface.Name, gw, src)
-	s.gw, s.src, s.iface = gw, src, iface
-
-	handle, err := pcap.OpenLive(iface.Name, 65536, true, pcap.BlockForever)
-	if err != nil {
-		return nil, err
-	}
-	s.handle = handle
-	return s, nil
-}
-
-func (s *scanner) close() {
-	s.handle.Close()
-}
-
-func synPacket() {
-
+func parseMac(macaddr string) net.HardwareAddr {
+	parsedMac, _ := net.ParseMAC(macaddr)
+	return parsedMac
 }
 
 func main() {
+	var iface = flag.String("i", "eth0", "Interface to read packets from")
+	var dstIp = flag.String("dst", "127.0.0.1", "dest ip addr")
+	var dstPortStr = flag.String("p", "22", "dest port")
+	flag.Parse()
 
+	dstPort, _ := strconv.Atoi(*dstPortStr)
+
+	ethernet := &layers.Ethernet{
+		BaseLayer:    layers.BaseLayer{},
+		SrcMAC:       parseMac("00:00:00:00:00:00"),
+		DstMAC:       parseMac("00:00:00:00:00:00"),
+		EthernetType: layers.EthernetTypeIPv4,
+	}
+	ip := &layers.IPv4{
+		Version:  4,
+		Flags:    layers.IPv4DontFragment,
+		TTL:      64,
+		Protocol: layers.IPProtocolTCP,
+		SrcIP:    net.ParseIP("127.0.0.1"),
+		DstIP:    net.ParseIP(*dstIp),
+	}
+	tcp := &layers.TCP{
+		SrcPort: layers.TCPPort(35000),
+		DstPort: layers.TCPPort(dstPort),
+		SYN:     true,
+	}
+	packetbuf := gopacket.NewSerializeBuffer()
+	tcp.SetNetworkLayerForChecksum(ip)
+	err := gopacket.SerializeLayers(
+		packetbuf,
+		gopacket.SerializeOptions{
+			FixLengths:       true,
+			ComputeChecksums: true,
+		},
+		ethernet,
+		ip,
+		tcp)
+	if err != nil {
+		log.Fatalf("create packet err : %v", err)
+	}
+
+	handle, err := pcap.OpenLive(*iface, 1600, true, pcap.BlockForever)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// SYNパケットを送信
+	handle.WritePacketData(packetbuf.Bytes())
+	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+	for packet := range packetSource.Packets() {
+		//tcpLayer := packet.Layer(layers.LayerTypeTCP)
+		//synack := tcpLayer.(*layers.TCP)
+		fmt.Printf("recv packet is %+v\n", packet)
+	}
 }
