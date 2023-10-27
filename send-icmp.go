@@ -62,6 +62,11 @@ func main() {
 	// pingを受信
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
-		fmt.Printf("recv packet is %+v\n", packet)
+		icmpLayer := packet.Layer(layers.LayerTypeICMPv4)
+		reply := icmpLayer.(*layers.ICMPv4)
+		if reply.TypeCode == layers.ICMPv4TypeEchoReply {
+			fmt.Println("recieve echo reply")
+			break
+		}
 	}
 }
