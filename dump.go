@@ -14,5 +14,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer handle.Close()
 	dumpcommand.Run(handle)
 }
