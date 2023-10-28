@@ -20,3 +20,7 @@
 # Go workspace file
 go.work
 .idea
+tcp-syn-scan
+send-icmp
+tcp-connect-scan-by-net
+tcp-connect-scan-by-socket

@@ -9,21 +9,37 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 )
+
+type nwDevice struct {
+	macAddr  net.HardwareAddr
+	ipv4Addr net.IP
+}
 
 func parseMac(macaddr string) net.HardwareAddr {
 	parsedMac, _ := net.ParseMAC(macaddr)
 	return parsedMac
 }
 
-func getInterface(ifname string) net.Interface {
+func getInterface(ifname string) nwDevice {
 	netifs, _ := net.Interfaces()
 	for _, netif := range netifs {
 		if netif.Name == ifname {
-			return netif
+			addrs, _ := netif.Addrs()
+			for _, addr := range addrs {
+				if !strings.Contains(addr.String(), ":") && strings.Contains(addr.String(), ".") {
+					ip, _, _ := net.ParseCIDR(addr.String())
+					return nwDevice{
+						macAddr:  netif.HardwareAddr,
+						ipv4Addr: ip,
+					}
+				}
+			}
+
 		}
 	}
-	return net.Interface{}
+	return nwDevice{}
 }
 
 func main() {
@@ -37,7 +53,7 @@ func main() {
 
 	ethernet := &layers.Ethernet{
 		BaseLayer:    layers.BaseLayer{},
-		SrcMAC:       netif.HardwareAddr,
+		SrcMAC:       netif.macAddr,
 		DstMAC:       parseMac("FC:4A:E9:DE:AD:05"),
 		EthernetType: layers.EthernetTypeIPv4,
 	}
@@ -46,7 +62,7 @@ func main() {
 		Flags:    layers.IPv4DontFragment,
 		TTL:      64,
 		Protocol: layers.IPProtocolTCP,
-		SrcIP:    net.ParseIP("192.168.0.12"),
+		SrcIP:    netif.ipv4Addr,
 		DstIP:    net.ParseIP(*dstIp),
 	}
 	tcp := &layers.TCP{
@@ -85,9 +101,9 @@ func main() {
 		synack := tcpLayer.(*layers.TCP)
 		if synackip.SrcIP.Equal(ip.DstIP) && synack.ACK {
 			fmt.Printf("TCP %d is open\n", dstPort)
+			break
 		} else {
 			fmt.Printf("TCP %d is close\n", dstPort)
 		}
-		break
 	}
 }
