@@ -31,6 +31,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("create socket err : %v", err)
 	}
+	defer syscall.Close(s)
+
 	err = syscall.Connect(s, &syscall.SockaddrInet4{
 		Port: strToInt(targetPort),
 		Addr: strToIPByte(targetIP),
