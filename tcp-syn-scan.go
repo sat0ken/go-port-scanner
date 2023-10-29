@@ -106,6 +106,7 @@ func main() {
 			break
 		} else {
 			fmt.Printf("TCP %d is close\n", dstPort)
+			break
 		}
 	}
 }
