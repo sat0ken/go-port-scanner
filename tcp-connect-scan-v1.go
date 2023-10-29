@@ -101,7 +101,27 @@ func main() {
 		tcpLayer := packet.Layer(layers.LayerTypeTCP)
 		synackip := ipLayer.(*layers.IPv4)
 		synack := tcpLayer.(*layers.TCP)
-		if synackip.SrcIP.Equal(ip.DstIP) && synack.ACK {
+		if synackip.SrcIP.Equal(ip.DstIP) && synack.SYN && synack.ACK {
+			packetbuf := gopacket.NewSerializeBuffer()
+			// ACKパケットを生成
+			synack.SYN = false
+			synack.SrcPort = layers.TCPPort(srcPort)
+			synack.DstPort = layers.TCPPort(dstPort)
+			acknum := synack.Seq + synack.Ack
+			synack.Seq = synack.Ack
+			synack.Ack = acknum
+			synack.Options = nil
+			synack.SetNetworkLayerForChecksum(ip)
+			gopacket.SerializeLayers(
+				packetbuf,
+				gopacket.SerializeOptions{
+					FixLengths:       true,
+					ComputeChecksums: true,
+				},
+				ethernet,
+				ip,
+				synack)
+			handle.WritePacketData(packetbuf.Bytes())
 			fmt.Printf("TCP %d is open\n", dstPort)
 			break
 		} else {
