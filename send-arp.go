@@ -60,9 +60,9 @@ func main() {
 		ProtAddressSize:   4,
 		Operation:         layers.ARPRequest,
 		SourceHwAddress:   netif.macAddr,
-		SourceProtAddress: []byte{192, 168, 0, 56},
+		SourceProtAddress: []byte{192, 168, 1, 3},
 		DstHwAddress:      []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		DstProtAddress:    []byte{192, 168, 0, 1},
+		DstProtAddress:    []byte{192, 168, 1, 2},
 	}
 	packetbuf := gopacket.NewSerializeBuffer()
 	err := gopacket.SerializeLayers(
