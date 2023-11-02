@@ -20,7 +20,6 @@ func main() {
 	flag.Parse()
 
 	ethernet := &layers.Ethernet{
-		BaseLayer:    layers.BaseLayer{},
 		SrcMAC:       parseMac("00:00:00:00:00:00"),
 		DstMAC:       parseMac("00:00:00:00:00:00"),
 		EthernetType: layers.EthernetTypeIPv4,
