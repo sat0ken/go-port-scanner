@@ -56,3 +56,6 @@ ip netns exec attacker ip link set attacker-br0 up
 ip netns exec attacker ethtool -K attacker-br0 rx off tx off
 ip netns exec attacker ip route add default via 192.168.1.1
 ip netns exec attacker ip link set attacker-br0 address AA:BB:CC:DD:EE:FF
+
+# bridge間でpingが飛ばなかったら
+sysctl net.bridge.bridge-nf-call-iptables=0
