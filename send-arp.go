@@ -43,7 +43,7 @@ func parseMac(macaddr string) net.HardwareAddr {
 
 func main() {
 	var iface = flag.String("i", "eth0", "Interface to read packets from")
-	//var dstIp = flag.String("dst", "127.0.0.1", "dest ip addr")
+	var dstIp = flag.String("dst", "127.0.0.1", "dest ip addr")
 	flag.Parse()
 
 	netif := getInterface(*iface)
@@ -60,9 +60,9 @@ func main() {
 		ProtAddressSize:   4,
 		Operation:         layers.ARPRequest,
 		SourceHwAddress:   netif.macAddr,
-		SourceProtAddress: []byte{192, 168, 1, 3},
+		SourceProtAddress: netif.ipv4Addr.To4(),
 		DstHwAddress:      []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		DstProtAddress:    []byte{192, 168, 1, 2},
+		DstProtAddress:    net.ParseIP(*dstIp).To4(),
 	}
 	packetbuf := gopacket.NewSerializeBuffer()
 	err := gopacket.SerializeLayers(
