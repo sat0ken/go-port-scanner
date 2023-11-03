@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # rootユーザーが必要
 if [ $UID -ne 0 ]; then
